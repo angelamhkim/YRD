@@ -2,9 +2,7 @@
 title: "Yangtze River Delta Climate Change Assessment"
 author: "Angela Kim"
 date: "April 28, 2019"
-output:
-  pdf_document: default
-  html_document: default
+output:rmarkdown::github_document
 ---
 
 ```{r setup, include=FALSE}
