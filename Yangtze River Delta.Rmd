@@ -1,0 +1,183 @@
+---
+title: "Yangtze River Delta Climate Change Assessment"
+author: "Angela Kim"
+date: "April 28, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## <span style ="color:cornflowerblue">Geography</span> 
+The Yangtze River Delta is a metropolitan region covering an area of 99,600 square kilometres where the Yangtze River drains into the East China Sea. The delta comprises of the Wu Chinese-speaking areas of Shanghai, southern Jiangsu province and northern Zhejang province. The Yangtze Delta has a marine monsoon subtropical climate with hot and humid summers, cool and dry winters, and warm spring and fall. With the most fertile soils in China the delta abundantly produces grain, cotton, hemp and tea. Rice is the most dominant crop  of the delta.
+
+The Yangtze delta consists of a large number of branches, tributaries, lakes, ancient riverbeds, and marshes. During major floods the delta area is completely submerged. To protect the surrounding region from floodwaters, the banks of the rivers are built up, with over 2,500km of levees constructed. 
+
+Most of the precipitation falls primarily as rain in the summer months. The monsoon rains bring floods in the lower parts of the basin beginning in March or April. The monsoon rains can continue for up to eight months and decrease through fall and winter until February, when the lowest annual level is reached. 
+
+![Historical climate in the region: chart downloaded from World Bank Climate Change Knowledge Portal at the Watershed level based on data provided by the Climatic Research Unit (CRU) of the University of East Anglia (UEA).](average-monthly-temperat.png)
+
+##<span style ="color:cornflowerblue">People and Cities </span>
+The delta is one of the most densely populated regions in the world with over 115 million people as of 2013. The greater delta region has about 1/10 of China's population. Shanghai is the biggest city in the delta and has a population density of over 2,700 inhabitants per square kilometre. There are five other urban cores (Nanjing, Hangzhou, Suzhou, Ningbo, and Wuxi) and over 20 relatively developed cities in the three provinces in the delta. 
+
+##<span style ="color:cornflowerblue">Climate Change Issues </span>
+The Yangtze River Delta is one of the most populated coastal areas that face the threats of climate change. 
+[add general text on potential climate change impacts and highest areas of vulnerability]
+
+##<span style ="color:cornflowerblue">Climate Change Analysis</span>
+###<span style ="color:orange">Methodology </span>
+Historical climate data downloaded from NOAA Climate Online database (https://www.ncdc.noaa.gov/cdo-web/). There are three climate stations in the Yangtze River Delta: Shanghai, Hangzhou, and Dinghai. Dinghai has the longest time period of recorded climate data so this station is used in this analysis. 
+
+```{r stations_map, echo=FALSE, message=FALSE, warning=FALSE}
+library(leaflet) 
+df <- data.frame(lat=c(30.233,30.033,31.167), lon=c(120.167,122.117,121.433))
+df %>%
+  leaflet()%>%
+  addTiles() %>%
+  addMarkers(popup=c("Hangzhou", "Dinghai", "Shanghai"))
+```
+
+```{r data_set_up, echo=FALSE, message=FALSE, warning=FALSE, results="hide"}
+#load libraries
+library(dplyr)
+library(tidyr)
+library(plotly)
+
+#read in the data
+ding <- read.csv("dinghai2.csv")
+shang <- read.csv("shanghai2.csv")
+hang<- read.csv("hangzhou2.csv")
+
+#fill in missing dates
+#dinghai
+ding$DATE <- paste(ding$DATE, "-01", sep="")
+ding <- ding %>% mutate(DATE=as.Date(DATE)) %>% complete(DATE=seq.Date(min(DATE), max(DATE), by="month"))
+ding$YEAR <- rep(ding$YEAR[1]:ding$YEAR[length(ding$YEAR)], each=12) 
+ding$MONTH <- rep(1:12, length(ding$YEAR)/12)
+#shanghai
+shang$DATE <- paste(shang$DATE,"-01", sep="")
+shang <- shang%>%mutate(DATE=as.Date(DATE))%>%complete(DATE=seq.Date(min(DATE), max(as.Date("2016-12-01")), by="month"))
+shang$YEAR<- rep(shang$YEAR[1]:2016, each=12)
+shang$MONTH <- rep(1:12, length(shang$YEAR)/12)
+#hangzhou
+hang$DATE <- paste(hang$DATE,"-01", sep="")
+hang <- hang%>%mutate(DATE=as.Date(DATE))%>%complete(DATE=seq.Date(min(DATE), max(as.Date("2016-12-01")), by="month"))
+hang$YEAR<- rep(hang$YEAR[1]:2016, each=12)
+hang$MONTH <- rep(1:12, length(hang$YEAR)/12)
+
+#group by year
+#dinghai
+ding.year <- group_by(ding, YEAR) %>%summarize(cdd=mean(CLDD, na.rm=T), cdd.na=mean(is.na(CLDD)), precip=mean(PRCP, na.rm=T), precip.na=mean(is.na(PRCP)), tavg=mean(TAVG, na.rm=T), tavg.na=mean(is.na(TAVG)), tmax=mean(TMAX, na.rm=T), tmax.na=mean(is.na(TMAX)), tmin=mean(TMIN, na.rm=T), tmin.na=mean(is.na(TMIN)))
+#shanghai
+shang.year <- group_by(shang, YEAR) %>%summarize(cdd=mean(CLDD, na.rm=T), cdd.na=mean(is.na(CLDD)), precip=mean(PRCP, na.rm=T), precip.na=mean(is.na(PRCP)), tavg=mean(TAVG, na.rm=T), tavg.na=mean(is.na(TAVG)), tmax=mean(TMAX, na.rm=T), tmax.na=mean(is.na(TMAX)), tmin=mean(TMIN, na.rm=T), tmin.na=mean(is.na(TMIN)))
+#hangzhou
+hang.year <- group_by(hang, YEAR) %>%summarize(cdd=mean(CLDD, na.rm=T), cdd.na=mean(is.na(CLDD)), precip=mean(PRCP, na.rm=T), precip.na=mean(is.na(PRCP)), tavg=mean(TAVG, na.rm=T), tavg.na=mean(is.na(TAVG)), tmax=mean(TMAX, na.rm=T), tmax.na=mean(is.na(TMAX)), tmin=mean(TMIN, na.rm=T), tmin.na=mean(is.na(TMIN)))
+
+#check difference between 3 stations 
+g <- ggplot()+
+  geom_line(data=hang.year, aes(x=YEAR, y=tavg), color="grey")+
+  geom_line(data=ding.year, aes(x=YEAR, y=tavg), color="lightblue")+
+  geom_line(data=shang.year, aes(x=YEAR, y=tavg), color="orange")+
+  scale_fill_manual(values=c("grey", "lightblue", "orange"),labels=c("hangzhou", "dinghai", "shanghai"))
+ggplotly(g)
+
+g <- ggplot()+
+  geom_line(data=hang.year, aes(x=YEAR, y=precip), color="grey")+
+  geom_line(data=ding.year, aes(x=YEAR, y=precip), color="lightblue")+
+  geom_line(data=shang.year, aes(x=YEAR, y=precip), color="orange")
+ggplotly(g)
+
+plot(hang.year$YEAR, hang.year$precip, type="l")
+lines(ding.year$YEAR, ding.year$precip, col="red") 
+lines(shang.year$YEAR, shang.year$precip, col="blue")
+
+#t.test (pvalue < 0.05 means two datasets are different, pvalue>0.05 means two datasets are the same)
+#subset to smallers dataset (shanghai: 1991-2016)
+dingsub <- ding[ding$YEAR%in%c(1991:2016),]
+hangsub <- hang[hang$YEAR%in%c(1991:2016),]
+#test if shanghai and dinghai are similar enough
+t.test(shang$PRCP, dingsub$PRCP) #different 0.002355
+t.test(shang$CLDD, dingsub$CLDD) #not different 0.3785
+t.test(shang$TAVG, dingsub$TAVG) #not different 0.8982
+t.test(shang$TMAX, dingsub$TMAX) #not different 0.6293
+t.test(shang$TMIN, dingsub$TMIN) #not different 0.8551
+#test if shanghai and hangzhou are similar enough
+t.test(shang$PRCP, hangsub$PRCP) #different 0.001338
+t.test(shang$CLDD, hangsub$CLDD) #not different 0.4577
+t.test(shang$TAVG, hangsub$TAVG) #not different 0.5429
+t.test(shang$TMAX, hangsub$TMAX) #different 0.05827
+t.test(shang$TMIN, hangsub$TMIN) #not different 0.7515
+
+#so we'll use dinghai
+#clean up years with too many missing values
+precipdel <- which(ding.year$precip.na>0.5) 
+ding.year$precip[precipdel] <- NA
+tavgdel <- which(ding.year$tavg.na > 0.5) 
+ding.year$tavg[tavgdel] <- NA
+tmaxdel <- which(ding.year$tmax.na > 0.5) 
+ding.year$tmax[tmaxdel] <- NA
+tmindel <- which(ding.year$tmin.na > 0.5) 
+ding.year$tmin[tmindel] <- NA
+```
+
+###<span style ="color:orange">Rationale </span>
+Climate change is simply another piece of information that should be considered during every planning process, or when existing plans are modified and updated.
+Fundamentally, good city planning practices are, by their nature, also climate smart planning practices. This is because most climate change planning actions are consistent with planners' responsibilities. (UN Habitat Planning for Climate Change, a Strategic, Values-Based Approach for Urban Planners)
+
+###<span style ="color:orange">Cooling Degree Days </span>
+A cooling degree day (CDD) is a measurement designed to quantify the demand for energy needed to cool a building. It is the number of degrees that a day's average temperature is above 65o Fahrenheit (18o Celsius), which is the temperature above which buildings need to be cooled.While CDD can describe the overall need for cooling as part of the planning for residential or commercial buildings, it is critical for the pricing of weather futures. In turn, that creates a risk management tool that utility, agriculture, construction, and other firms can use to hedge their activities that depend on weather, such as energy needs, growing season, and outdoor work time.
+```{r cdd, echo=FALSE, message=FALSE, warning=FALSE}
+plot_ly(ding.year, x=~YEAR, y=~cdd, mode="lines")
+```
+
+###<span style ="color:orange">Temperature</span>
+####Average Temperature
+```{r tavg, echo=FALSE, message=FALSE, warning=FALSE}
+plot_ly(ding.year, x=~YEAR, y=~tavg, mode="lines")
+```
+
+####Maximum Temperature
+Maximum temperatures can affect various aspects at the community level. Crops may produce lower yields if temperatures go beyond their biological threshold temperatures, buildings will require more energy to cool down, the risk of heat stroke in vulnerable populations may increase, and the efficiency of fuel systems may decrease. Maximum temperatures are expected to increase faster than average temperatures, with more extreme heat days. 
+
+```{r tmax, echo=FALSE, message=FALSE, warning=FALSE}
+plot_ly(ding.year, x=~YEAR, y=~tmax, mode="lines")
+```
+
+In the period 1981-2018, maximum temperatures in the YRD have a seasonality with the highest tempeartures occuring in the months of June through September, with the highest temperatures occuring in July at an average of 87oF. 
+
+####Minimum Temperature
+```{r tmin, echo=FALSE, message=FALSE, warning=FALSE}
+plot_ly(ding.year, x=~YEAR, y=~tmin, mode="lines")
+```
+
+###<span style ="color:orange">Precipitation</span>
+####Dinghai
+```{r precip, echo=FALSE, message=FALSE, warning=FALSE}
+plot_ly(ding.year, x=~YEAR, y=~precip, mode="lines")
+```
+
+####Hangzhou
+```{r precip2, echo=FALSE, message=FALSE, warning=FALSE}
+precipdel <- which(hang.year$precip.na>0.5) 
+hang.year$precip[precipdel] <- NA
+plot_ly(hang.year, x=~YEAR, y=~precip, mode="lines")
+```
+
+####Shanghai
+```{r precip3, echo=FALSE, message=FALSE, warning=FALSE}
+precipdel <- which(shang.year$precip.na>0.5) 
+shang.year$precip[precipdel] <- NA
+plot_ly(shang.year, x=~YEAR, y=~precip, mode="lines")
+```
+
+###Seasonality
+```{r seasonality, echo=FALSE, message=FALSE, warning=FALSE}
+hang.month <- group_by(hang, MONTH) %>%summarize(cdd=mean(CLDD, na.rm=T), cdd.na=mean(is.na(CLDD)), precip=mean(PRCP, na.rm=T), precip.na=mean(is.na(PRCP)), tavg=mean(TAVG, na.rm=T), tavg.na=mean(is.na(TAVG)), tmax=mean(TMAX, na.rm=T), tmax.na=mean(is.na(TMAX)), tmin=mean(TMIN, na.rm=T), tmin.na=mean(is.na(TMIN)))
+g <- ggplot(data=hang.month, aes(x=as.factor(MONTH), y=tavg))+
+  geom_col(fill="skyblue")
+ggplotly(g)
+```
+
